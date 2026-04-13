@@ -17,25 +17,49 @@
         <a href="/dashboard/overview?filter=<%= filter %>&fromDate=<%= fromDate %>&toDate=<%= toDate %>" class="btn btn-outline-primary">Quay lai tong quan</a>
       </div>
 
-      <form class="row g-2 mb-3" method="GET" action="/dashboard/reports">
-        <div class="col-md-3">
-          <select class="form-select" name="filter">
-            <option value="all" <%= filter === "all" ? "selected" : "" %>>Tu 01/2025 den nay</option>
-            <option value="thisMonth" <%= filter === "thisMonth" ? "selected" : "" %>>Thang nay</option>
-            <option value="lastMonth" <%= filter === "lastMonth" ? "selected" : "" %>>Thang truoc</option>
-            <option value="last7Days" <%= filter === "last7Days" ? "selected" : "" %>>7 ngay qua</option>
-          </select>
+      <div class="card p-3 shadow-sm mb-3">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-6">
+            <form class="row g-2" method="GET" action="/dashboard/reports">
+              <div class="col-12">
+                <label class="form-label mb-1 fw-semibold">Loc nhanh</label>
+                <select class="form-select" name="filter">
+                  <option value="all" <%= filter === "all" ? "selected" : "" %>>Tu 01/2025 den nay</option>
+                  <option value="thisMonth" <%= filter === "thisMonth" ? "selected" : "" %>>Thang nay</option>
+                  <option value="lastMonth" <%= filter === "lastMonth" ? "selected" : "" %>>Thang truoc</option>
+                  <option value="last7Days" <%= filter === "last7Days" ? "selected" : "" %>>7 ngay qua</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <button type="submit" class="btn btn-primary w-100">Ap dung loc nhanh</button>
+              </div>
+            </form>
+          </div>
+          <div class="col-md-6">
+            <form class="row g-2" method="GET" action="/dashboard/reports">
+              <div class="col-12">
+                <label class="form-label mb-1 fw-semibold">Loc theo khoang ngay</label>
+              </div>
+              <div class="col-md-5">
+                <input type="date" class="form-control" name="fromDate" value="<%= fromDate %>" />
+              </div>
+              <div class="col-md-5">
+                <input type="date" class="form-control" name="toDate" value="<%= toDate %>" />
+              </div>
+              <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Tra cuu</button>
+              </div>
+            </form>
+          </div>
         </div>
-        <div class="col-md-2">
-          <input type="date" class="form-control" name="fromDate" value="<%= fromDate %>" />
+        <div class="mt-2 small text-muted">
+          Trang thai: <strong><%= isCustomRange ? "Dang loc theo khoang ngay" : "Dang dung loc nhanh" %></strong>
         </div>
-        <div class="col-md-2">
-          <input type="date" class="form-control" name="toDate" value="<%= toDate %>" />
-        </div>
-        <div class="col-md-2">
-          <button type="submit" class="btn btn-primary w-100">Loc</button>
-        </div>
-      </form>
+      </div>
+
+      <% if (filterError) { %>
+      <div class="alert alert-warning py-2"><%= filterError %></div>
+      <% } %>
 
       <p class="text-muted">Pham vi du lieu: <strong><%= dateRangeLabel %></strong></p>
 

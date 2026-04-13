@@ -10,8 +10,21 @@ function formatDate(date) {
 function getDateRange(filter, fromDate, toDate) {
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const hasFromDate = Boolean(fromDate);
+  const hasToDate = Boolean(toDate);
   const parsedFrom = fromDate ? new Date(fromDate) : null;
   const parsedTo = toDate ? new Date(toDate) : null;
+
+  if (hasFromDate !== hasToDate) {
+    return {
+      from: new Date("2025-01-01T00:00:00.000Z"),
+      to: now,
+      label: "Tu 01/2025 den hien tai",
+      custom: false,
+      appliedFilter: "all",
+      error: "Vui long chon day du Tu ngay va Den ngay.",
+    };
+  }
 
   if (
     parsedFrom instanceof Date &&
@@ -36,8 +49,19 @@ function getDateRange(filter, fromDate, toDate) {
         to: rangeTo,
         label: `${formatDate(rangeFrom)} - ${formatDate(rangeTo)}`,
         custom: true,
+        appliedFilter: "custom",
+        error: "",
       };
     }
+
+    return {
+      from: new Date("2025-01-01T00:00:00.000Z"),
+      to: now,
+      label: "Tu 01/2025 den hien tai",
+      custom: false,
+      appliedFilter: "all",
+      error: "Khoang ngay khong hop le. Tu ngay phai nho hon hoac bang Den ngay.",
+    };
   }
 
   if (filter === "thisMonth") {
@@ -46,6 +70,8 @@ function getDateRange(filter, fromDate, toDate) {
       to: now,
       label: "Thang nay",
       custom: false,
+      appliedFilter: "thisMonth",
+      error: "",
     };
   }
 
@@ -55,6 +81,8 @@ function getDateRange(filter, fromDate, toDate) {
       to: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999),
       label: "Thang truoc",
       custom: false,
+      appliedFilter: "lastMonth",
+      error: "",
     };
   }
 
@@ -64,6 +92,8 @@ function getDateRange(filter, fromDate, toDate) {
       to: now,
       label: "7 ngay qua",
       custom: false,
+      appliedFilter: "last7Days",
+      error: "",
     };
   }
 
@@ -72,6 +102,8 @@ function getDateRange(filter, fromDate, toDate) {
     to: now,
     label: "Tu 01/2025 den hien tai",
     custom: false,
+    appliedFilter: "all",
+    error: "",
   };
 }
 

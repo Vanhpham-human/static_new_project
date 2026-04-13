@@ -14,10 +14,12 @@ router.get("/dashboard/overview", async (req, res, next) => {
     const toDate = req.query.toDate || "";
     const data = await getOverviewData(filter, fromDate, toDate);
     res.render("overview", {
-      filter,
+      filter: data.dateRange.appliedFilter || filter,
       fromDate,
       toDate,
       dateRangeLabel: data.dateRange.label,
+      filterError: data.dateRange.error,
+      isCustomRange: data.dateRange.custom,
       monthlyRevenue: data.monthlyRevenue,
       revenueByCategory: data.revenueByCategory,
       netProfit: data.netProfit,
@@ -34,10 +36,12 @@ router.get("/dashboard/reports", async (req, res, next) => {
     const toDate = req.query.toDate || "";
     const data = await getReportsData(filter, fromDate, toDate);
     res.render("reports", {
-      filter,
+      filter: data.dateRange.appliedFilter || filter,
       fromDate,
       toDate,
       dateRangeLabel: data.dateRange.label,
+      filterError: data.dateRange.error,
+      isCustomRange: data.dateRange.custom,
       topCustomers: data.topCustomers,
       employeePerformance: data.employeePerformance,
       lowStockProducts: data.lowStockProducts,
