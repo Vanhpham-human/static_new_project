@@ -107,25 +107,35 @@ function getDateRange(filter, fromDate, toDate) {
   };
 }
 
-async function getOverviewData(filter = "all", fromDate, toDate) {
+async function getOverviewData(filter = "all", fromDate, toDate, granularity = "auto") {
   const dateRange = getDateRange(filter, fromDate, toDate);
+  const normalizedGranularity = ["day", "month", "year"].includes(granularity) ? granularity : null;
+  const effectiveGranularity = normalizedGranularity || (dateRange.custom ? "day" : "month");
   const matchDate = {
     "orderInfo.orderDate": { $gte: dateRange.from, $lte: dateRange.to },
     "orderInfo.status": "Completed",
   };
-  const revenueGroupId = dateRange.custom
-    ? {
-        year: { $year: "$orderInfo.orderDate" },
-        month: { $month: "$orderInfo.orderDate" },
-        day: { $dayOfMonth: "$orderInfo.orderDate" },
-      }
-    : {
-        year: { $year: "$orderInfo.orderDate" },
-        month: { $month: "$orderInfo.orderDate" },
-      };
-  const revenueSort = dateRange.custom
-    ? { "_id.year": 1, "_id.month": 1, "_id.day": 1 }
-    : { "_id.year": 1, "_id.month": 1 };
+  const revenueGroupId =
+    effectiveGranularity === "day"
+      ? {
+          year: { $year: "$orderInfo.orderDate" },
+          month: { $month: "$orderInfo.orderDate" },
+          day: { $dayOfMonth: "$orderInfo.orderDate" },
+        }
+      : effectiveGranularity === "year"
+        ? {
+            year: { $year: "$orderInfo.orderDate" },
+          }
+        : {
+            year: { $year: "$orderInfo.orderDate" },
+            month: { $month: "$orderInfo.orderDate" },
+          };
+  const revenueSort =
+    effectiveGranularity === "day"
+      ? { "_id.year": 1, "_id.month": 1, "_id.day": 1 }
+      : effectiveGranularity === "year"
+        ? { "_id.year": 1 }
+        : { "_id.year": 1, "_id.month": 1 };
 
   const monthlyRevenueRaw = await OrderDetail.aggregate([
     {
@@ -215,10 +225,14 @@ async function getOverviewData(filter = "all", fromDate, toDate) {
 
   return {
     dateRange,
+    effectiveGranularity,
     monthlyRevenue: monthlyRevenueRaw.map((item) => ({
-      label: dateRange.custom
-        ? `${String(item._id.day).padStart(2, "0")}/${String(item._id.month).padStart(2, "0")}/${item._id.year}`
-        : `${String(item._id.month).padStart(2, "0")}/${item._id.year}`,
+      label:
+        effectiveGranularity === "day"
+          ? `${String(item._id.day).padStart(2, "0")}/${String(item._id.month).padStart(2, "0")}/${item._id.year}`
+          : effectiveGranularity === "year"
+            ? `${item._id.year}`
+            : `${String(item._id.month).padStart(2, "0")}/${item._id.year}`,
       totalRevenue: item.totalRevenue,
     })),
     revenueByCategory: revenueByCategory.map((item) => ({

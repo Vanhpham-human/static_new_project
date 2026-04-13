@@ -9,6 +9,9 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body>
@@ -19,42 +22,42 @@
       </div>
 
       <div class="card p-3 shadow-sm mb-3">
-        <div class="row g-3 align-items-end">
-          <div class="col-md-6">
-            <form class="row g-2" method="GET" action="/dashboard/overview">
-              <div class="col-12">
-                <label class="form-label mb-1 fw-semibold">Loc nhanh</label>
-                <select class="form-select" name="filter">
-                  <option value="all" <%= filter === "all" ? "selected" : "" %>>Tu 01/2025 den nay</option>
-                  <option value="thisMonth" <%= filter === "thisMonth" ? "selected" : "" %>>Thang nay</option>
-                  <option value="lastMonth" <%= filter === "lastMonth" ? "selected" : "" %>>Thang truoc</option>
-                  <option value="last7Days" <%= filter === "last7Days" ? "selected" : "" %>>7 ngay qua</option>
-                </select>
-              </div>
-              <div class="col-6">
-                <button type="submit" class="btn btn-primary w-100">Ap dung loc nhanh</button>
-              </div>
-            </form>
+        <form class="row g-2 align-items-end" method="GET" action="/dashboard/overview">
+          <div class="col-md-3">
+            <label class="form-label mb-1 fw-semibold">Loc nhanh</label>
+            <select class="form-select" name="filter">
+              <option value="all" <%= filter === "all" ? "selected" : "" %>>Tu 01/2025 den nay</option>
+              <option value="thisMonth" <%= filter === "thisMonth" ? "selected" : "" %>>Thang nay</option>
+              <option value="lastMonth" <%= filter === "lastMonth" ? "selected" : "" %>>Thang truoc</option>
+              <option value="last7Days" <%= filter === "last7Days" ? "selected" : "" %>>7 ngay qua</option>
+            </select>
           </div>
-          <div class="col-md-6">
-            <form class="row g-2" method="GET" action="/dashboard/overview">
-              <div class="col-12">
-                <label class="form-label mb-1 fw-semibold">Loc theo khoang ngay</label>
-              </div>
-              <div class="col-md-5">
-                <input type="date" class="form-control" name="fromDate" value="<%= fromDate %>" />
-              </div>
-              <div class="col-md-5">
-                <input type="date" class="form-control" name="toDate" value="<%= toDate %>" />
-              </div>
-              <div class="col-md-2">
-                <button type="submit" class="btn btn-outline-primary w-100">Tra cuu</button>
-              </div>
-            </form>
+          <div class="col-md-3">
+            <label class="form-label mb-1 fw-semibold">Hien thi theo</label>
+            <select class="form-select" name="granularity">
+              <option value="day" <%= granularity === "day" ? "selected" : "" %>>Theo ngay</option>
+              <option value="month" <%= granularity === "month" ? "selected" : "" %>>Theo thang</option>
+              <option value="year" <%= granularity === "year" ? "selected" : "" %>>Theo nam</option>
+            </select>
           </div>
-        </div>
+          <div class="col-md-4">
+            <label class="form-label mb-1 fw-semibold">Date range</label>
+            <input
+              type="text"
+              class="form-control"
+              name="dateRange"
+              id="overviewDateRange"
+              placeholder="Chon khoang ngay"
+              value="<%= dateRangeText %>"
+            />
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Ap dung</button>
+          </div>
+        </form>
         <div class="mt-2 small text-muted">
           Trang thai: <strong><%= isCustomRange ? "Dang loc theo khoang ngay" : "Dang dung loc nhanh" %></strong>
+          | Do thi: <strong><%= granularity === "day" ? "Theo ngay" : granularity === "year" ? "Theo nam" : "Theo thang" %></strong>
         </div>
       </div>
 
@@ -107,6 +110,7 @@
       const categoryRevenue = <%- JSON.stringify(revenueByCategory) %>;
       const vndFormatter = new Intl.NumberFormat("vi-VN");
       const formatVnd = (value) => `${vndFormatter.format(Number(value || 0))} VND`;
+      const formatTy = (value) => `${Number(value) / 1000000000} ty`;
 
       const lineCtx = document.getElementById("lineChart").getContext("2d");
       new Chart(lineCtx, {
@@ -118,9 +122,15 @@
               label: "Doanh thu (VND)",
               data: monthlyRevenue.map((item) => item.totalRevenue),
               borderColor: "#0d6efd",
-              backgroundColor: "rgba(13,110,253,0.15)",
-              fill: true,
-              tension: 0.3,
+              backgroundColor: "rgba(13,110,253,0.10)",
+              fill: false,
+              tension: 0,
+              borderWidth: 4,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBorderWidth: 2,
+              pointBackgroundColor: "#ffffff",
+              pointBorderColor: "#0d6efd",
             },
           ],
         },
@@ -129,12 +139,31 @@
             y: {
               beginAtZero: true,
               ticks: {
-                maxTicksLimit: 12,
-                callback: (value) => formatVnd(value),
+                maxTicksLimit: 10,
+                callback: (value) => formatTy(value),
+              },
+              grid: {
+                color: "rgba(0,0,0,0.15)",
+                lineWidth: 1.2,
+              },
+            },
+            x: {
+              grid: {
+                color: "rgba(0,0,0,0.08)",
               },
             },
           },
           plugins: {
+            datalabels: {
+              color: "#0b5ed7",
+              anchor: "end",
+              align: "top",
+              font: {
+                weight: "bold",
+                size: 10,
+              },
+              formatter: (value) => formatTy(value),
+            },
             tooltip: {
               callbacks: {
                 label: (context) => ` ${formatVnd(context.raw)}`,
@@ -142,6 +171,7 @@
             },
           },
         },
+        plugins: [ChartDataLabels],
       });
 
       const barCtx = document.getElementById("barChart").getContext("2d");
@@ -161,9 +191,11 @@
           scales: {
             y: {
               beginAtZero: true,
+              max: 80000000000,
               ticks: {
-                maxTicksLimit: 12,
-                callback: (value) => formatVnd(value),
+                stepSize: 10000000000,
+                maxTicksLimit: 9,
+                callback: (value) => formatTy(value),
               },
             },
           },
@@ -175,6 +207,12 @@
             },
           },
         },
+      });
+
+      flatpickr("#overviewDateRange", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        conjunction: " to ",
       });
     </script>
   </body>
