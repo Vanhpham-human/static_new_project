@@ -113,6 +113,19 @@ async function getOverviewData(filter = "all", fromDate, toDate) {
     "orderInfo.orderDate": { $gte: dateRange.from, $lte: dateRange.to },
     "orderInfo.status": "Completed",
   };
+  const revenueGroupId = dateRange.custom
+    ? {
+        year: { $year: "$orderInfo.orderDate" },
+        month: { $month: "$orderInfo.orderDate" },
+        day: { $dayOfMonth: "$orderInfo.orderDate" },
+      }
+    : {
+        year: { $year: "$orderInfo.orderDate" },
+        month: { $month: "$orderInfo.orderDate" },
+      };
+  const revenueSort = dateRange.custom
+    ? { "_id.year": 1, "_id.month": 1, "_id.day": 1 }
+    : { "_id.year": 1, "_id.month": 1 };
 
   const monthlyRevenueRaw = await OrderDetail.aggregate([
     {
@@ -127,14 +140,11 @@ async function getOverviewData(filter = "all", fromDate, toDate) {
     { $match: matchDate },
     {
       $group: {
-        _id: {
-          year: { $year: "$orderInfo.orderDate" },
-          month: { $month: "$orderInfo.orderDate" },
-        },
+        _id: revenueGroupId,
         totalRevenue: { $sum: { $multiply: ["$quantity", "$unitPrice"] } },
       },
     },
-    { $sort: { "_id.year": 1, "_id.month": 1 } },
+    { $sort: revenueSort },
   ]);
 
   const revenueByCategory = await OrderDetail.aggregate([
@@ -206,7 +216,9 @@ async function getOverviewData(filter = "all", fromDate, toDate) {
   return {
     dateRange,
     monthlyRevenue: monthlyRevenueRaw.map((item) => ({
-      label: `${String(item._id.month).padStart(2, "0")}/${item._id.year}`,
+      label: dateRange.custom
+        ? `${String(item._id.day).padStart(2, "0")}/${String(item._id.month).padStart(2, "0")}/${item._id.year}`
+        : `${String(item._id.month).padStart(2, "0")}/${item._id.year}`,
       totalRevenue: item.totalRevenue,
     })),
     revenueByCategory: revenueByCategory.map((item) => ({
