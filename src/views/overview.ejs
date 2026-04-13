@@ -93,18 +93,20 @@
 
       <div class="card p-3 shadow-sm mb-4">
         <h5>Doanh thu theo thoi gian</h5>
-        <canvas id="lineChart" height="100"></canvas>
+        <canvas id="lineChart" height="150"></canvas>
       </div>
 
       <div class="card p-3 shadow-sm">
         <h5>Doanh thu theo danh muc</h5>
-        <canvas id="barChart" height="110"></canvas>
+        <canvas id="barChart" height="160"></canvas>
       </div>
     </div>
 
     <script>
       const monthlyRevenue = <%- JSON.stringify(monthlyRevenue) %>;
       const categoryRevenue = <%- JSON.stringify(revenueByCategory) %>;
+      const vndFormatter = new Intl.NumberFormat("vi-VN");
+      const formatVnd = (value) => `${vndFormatter.format(Number(value || 0))} VND`;
 
       const lineCtx = document.getElementById("lineChart").getContext("2d");
       new Chart(lineCtx, {
@@ -122,6 +124,24 @@
             },
           ],
         },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                maxTicksLimit: 12,
+                callback: (value) => formatVnd(value),
+              },
+            },
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (context) => ` ${formatVnd(context.raw)}`,
+              },
+            },
+          },
+        },
       });
 
       const barCtx = document.getElementById("barChart").getContext("2d");
@@ -136,6 +156,24 @@
               backgroundColor: "#20c997",
             },
           ],
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                maxTicksLimit: 12,
+                callback: (value) => formatVnd(value),
+              },
+            },
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (context) => ` ${formatVnd(context.raw)}`,
+              },
+            },
+          },
         },
       });
     </script>
