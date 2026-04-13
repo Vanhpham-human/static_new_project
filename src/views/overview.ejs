@@ -96,12 +96,12 @@
 
       <div class="card p-3 shadow-sm mb-4">
         <h5>Doanh thu theo thoi gian</h5>
-        <canvas id="lineChart" height="150"></canvas>
+        <canvas id="lineChart" height="300"></canvas>
       </div>
 
       <div class="card p-3 shadow-sm">
         <h5>Doanh thu theo danh muc</h5>
-        <canvas id="barChart" height="160"></canvas>
+        <canvas id="barChart" height="250"></canvas>
       </div>
     </div>
 
@@ -110,7 +110,29 @@
       const categoryRevenue = <%- JSON.stringify(revenueByCategory) %>;
       const vndFormatter = new Intl.NumberFormat("vi-VN");
       const formatVnd = (value) => `${vndFormatter.format(Number(value || 0))} VND`;
-      const formatTy = (value) => `${Number(value) / 1000000000} ty`;
+      const formatTy = (value) => `${(Number(value) / 1000000000).toFixed(1)} ty`;
+      const lineValues = monthlyRevenue.map((item) => Number(item.totalRevenue || 0));
+      const barValues = categoryRevenue.map((item) => Number(item.totalRevenue || 0));
+
+      function buildYAxisOptions(values, forceStartAtZero = false) {
+        const safeValues = values.length ? values : [0];
+        const minValue = Math.min(...safeValues);
+        const maxValue = Math.max(...safeValues);
+        const spread = Math.max(maxValue - minValue, Math.max(maxValue * 0.05, 1));
+        const padding = spread * 0.05;
+        const suggestedMin = forceStartAtZero ? 0 : Math.max(minValue - padding, 0);
+        const suggestedMax = maxValue + padding;
+
+        return {
+          beginAtZero: forceStartAtZero,
+          suggestedMin,
+          suggestedMax,
+          ticks: {
+            maxTicksLimit: 10,
+            callback: (value) => formatTy(value),
+          },
+        };
+      }
 
       const lineCtx = document.getElementById("lineChart").getContext("2d");
       new Chart(lineCtx, {
@@ -125,9 +147,9 @@
               backgroundColor: "rgba(13,110,253,0.10)",
               fill: false,
               tension: 0,
-              borderWidth: 4,
-              pointRadius: 4,
-              pointHoverRadius: 6,
+              borderWidth: 5,
+              pointRadius: 5,
+              pointHoverRadius: 7,
               pointBorderWidth: 2,
               pointBackgroundColor: "#ffffff",
               pointBorderColor: "#0d6efd",
@@ -137,11 +159,7 @@
         options: {
           scales: {
             y: {
-              beginAtZero: true,
-              ticks: {
-                maxTicksLimit: 10,
-                callback: (value) => formatTy(value),
-              },
+              ...buildYAxisOptions(lineValues, false),
               grid: {
                 color: "rgba(0,0,0,0.15)",
                 lineWidth: 1.2,
@@ -190,13 +208,7 @@
         options: {
           scales: {
             y: {
-              beginAtZero: true,
-              max: 80000000000,
-              ticks: {
-                stepSize: 10000000000,
-                maxTicksLimit: 9,
-                callback: (value) => formatTy(value),
-              },
+              ...buildYAxisOptions(barValues, true),
             },
           },
           plugins: {
