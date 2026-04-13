@@ -1,0 +1,12 @@
+body {
+  background: #f5f7fb;
+}
+
+.card {
+  border: 0;
+  border-radius: 12px;
+}
+
+table th {
+  white-space: nowrap;
+}
