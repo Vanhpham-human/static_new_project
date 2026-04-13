@@ -10,8 +10,10 @@
     />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body>
@@ -23,41 +25,22 @@
 
       <div class="card p-3 shadow-sm mb-3">
         <form class="row g-2 align-items-end" method="GET" action="/dashboard/overview">
-          <div class="col-md-3">
-            <label class="form-label mb-1 fw-semibold">Loc nhanh</label>
-            <select class="form-select" name="filter">
-              <option value="all" <%= filter === "all" ? "selected" : "" %>>Tu 01/2025 den nay</option>
-              <option value="thisMonth" <%= filter === "thisMonth" ? "selected" : "" %>>Thang nay</option>
-              <option value="lastMonth" <%= filter === "lastMonth" ? "selected" : "" %>>Thang truoc</option>
-              <option value="last7Days" <%= filter === "last7Days" ? "selected" : "" %>>7 ngay qua</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label mb-1 fw-semibold">Hien thi theo</label>
-            <select class="form-select" name="granularity">
-              <option value="day" <%= granularity === "day" ? "selected" : "" %>>Theo ngay</option>
-              <option value="month" <%= granularity === "month" ? "selected" : "" %>>Theo thang</option>
-              <option value="year" <%= granularity === "year" ? "selected" : "" %>>Theo nam</option>
-            </select>
-          </div>
-          <div class="col-md-4">
+          <input type="hidden" name="filter" value="all" />
+          <input type="hidden" name="granularity" value="auto" />
+          <div class="col-md-10">
             <label class="form-label mb-1 fw-semibold">Date range</label>
-            <input
-              type="text"
-              class="form-control"
-              name="dateRange"
-              id="overviewDateRange"
-              placeholder="Chon khoang ngay"
-              value="<%= dateRangeText %>"
-            />
+            <div id="overviewDateRangePicker" class="form-control d-flex justify-content-between align-items-center">
+              <span></span>
+              <span>▼</span>
+            </div>
+            <input type="hidden" name="dateRange" id="overviewDateRangeInput" value="<%= dateRangeText %>" />
           </div>
           <div class="col-md-2">
             <button type="submit" class="btn btn-primary w-100">Ap dung</button>
           </div>
         </form>
         <div class="mt-2 small text-muted">
-          Trang thai: <strong><%= isCustomRange ? "Dang loc theo khoang ngay" : "Dang dung loc nhanh" %></strong>
-          | Do thi: <strong><%= granularity === "day" ? "Theo ngay" : granularity === "year" ? "Theo nam" : "Theo thang" %></strong>
+          Trang thai: <strong><%= isCustomRange ? "Dang loc theo khoang ngay" : "Dang hien thi mac dinh" %></strong>
         </div>
       </div>
 
@@ -96,12 +79,20 @@
 
       <div class="card p-3 shadow-sm mb-4">
         <h5>Doanh thu theo thoi gian</h5>
+        <% if (!monthlyRevenue || monthlyRevenue.length === 0) { %>
+        <div class="text-muted py-4">Khong co du lieu doanh thu trong khoang thoi gian da chon.</div>
+        <% } else { %>
         <canvas id="lineChart" height="300"></canvas>
+        <% } %>
       </div>
 
       <div class="card p-3 shadow-sm">
         <h5>Doanh thu theo danh muc</h5>
+        <% if (!revenueByCategory || revenueByCategory.length === 0) { %>
+        <div class="text-muted py-4">Khong co du lieu doanh thu theo danh muc trong khoang thoi gian da chon.</div>
+        <% } else { %>
         <canvas id="barChart" height="250"></canvas>
+        <% } %>
       </div>
     </div>
 
@@ -134,97 +125,139 @@
         };
       }
 
-      const lineCtx = document.getElementById("lineChart").getContext("2d");
-      new Chart(lineCtx, {
-        type: "line",
-        data: {
-          labels: monthlyRevenue.map((item) => item.label),
-          datasets: [
-            {
-              label: "Doanh thu (VND)",
-              data: monthlyRevenue.map((item) => item.totalRevenue),
-              borderColor: "#0d6efd",
-              backgroundColor: "rgba(13,110,253,0.10)",
-              fill: false,
-              tension: 0,
-              borderWidth: 5,
-              pointRadius: 5,
-              pointHoverRadius: 7,
-              pointBorderWidth: 2,
-              pointBackgroundColor: "#ffffff",
-              pointBorderColor: "#0d6efd",
-            },
-          ],
-        },
-        options: {
-          scales: {
-            y: {
-              ...buildYAxisOptions(lineValues, false),
-              grid: {
-                color: "rgba(0,0,0,0.15)",
-                lineWidth: 1.2,
+      const lineCanvas = document.getElementById("lineChart");
+      if (lineCanvas && monthlyRevenue.length > 0) {
+        const lineCtx = lineCanvas.getContext("2d");
+        new Chart(lineCtx, {
+          type: "line",
+          data: {
+            labels: monthlyRevenue.map((item) => item.label),
+            datasets: [
+              {
+                label: "Doanh thu (VND)",
+                data: monthlyRevenue.map((item) => item.totalRevenue),
+                borderColor: "#0d6efd",
+                backgroundColor: "rgba(13,110,253,0.10)",
+                fill: false,
+                tension: 0,
+                borderWidth: 5,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBorderWidth: 2,
+                pointBackgroundColor: "#ffffff",
+                pointBorderColor: "#0d6efd",
+              },
+            ],
+          },
+          options: {
+            scales: {
+              y: {
+                ...buildYAxisOptions(lineValues, false),
+                grid: {
+                  color: "rgba(0,0,0,0.15)",
+                  lineWidth: 1.2,
+                },
+              },
+              x: {
+                grid: {
+                  color: "rgba(0,0,0,0.08)",
+                },
               },
             },
-            x: {
-              grid: {
-                color: "rgba(0,0,0,0.08)",
+            plugins: {
+              datalabels: {
+                color: "#0b5ed7",
+                anchor: "end",
+                align: "top",
+                font: {
+                  weight: "bold",
+                  size: 10,
+                },
+                formatter: (value) => formatTy(value),
+              },
+              tooltip: {
+                callbacks: {
+                  label: (context) => ` ${formatVnd(context.raw)}`,
+                },
               },
             },
           },
-          plugins: {
-            datalabels: {
-              color: "#0b5ed7",
-              anchor: "end",
-              align: "top",
-              font: {
-                weight: "bold",
-                size: 10,
-              },
-              formatter: (value) => formatTy(value),
-            },
-            tooltip: {
-              callbacks: {
-                label: (context) => ` ${formatVnd(context.raw)}`,
-              },
-            },
-          },
-        },
-        plugins: [ChartDataLabels],
-      });
+          plugins: [ChartDataLabels],
+        });
+      }
 
-      const barCtx = document.getElementById("barChart").getContext("2d");
-      new Chart(barCtx, {
-        type: "bar",
-        data: {
-          labels: categoryRevenue.map((item) => item.category),
-          datasets: [
-            {
-              label: "Doanh thu theo danh muc (VND)",
-              data: categoryRevenue.map((item) => item.totalRevenue),
-              backgroundColor: "#20c997",
-            },
-          ],
-        },
-        options: {
-          scales: {
-            y: {
-              ...buildYAxisOptions(barValues, true),
-            },
+      const barCanvas = document.getElementById("barChart");
+      if (barCanvas && categoryRevenue.length > 0) {
+        const barCtx = barCanvas.getContext("2d");
+        new Chart(barCtx, {
+          type: "bar",
+          data: {
+            labels: categoryRevenue.map((item) => item.category),
+            datasets: [
+              {
+                label: "Doanh thu theo danh muc (VND)",
+                data: categoryRevenue.map((item) => item.totalRevenue),
+                backgroundColor: "#20c997",
+              },
+            ],
           },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: (context) => ` ${formatVnd(context.raw)}`,
+          options: {
+            scales: {
+              y: {
+                ...buildYAxisOptions(barValues, true),
+              },
+            },
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: (context) => ` ${formatVnd(context.raw)}`,
+                },
               },
             },
           },
-        },
-      });
+        });
+      }
 
-      flatpickr("#overviewDateRange", {
-        mode: "range",
-        dateFormat: "Y-m-d",
-        conjunction: " to ",
+      $(function () {
+        const rawRange = "<%= dateRangeText %>";
+        const parts = rawRange ? rawRange.split(" to ") : [];
+        let start = moment().subtract(29, "days");
+        let end = moment();
+
+        if (parts.length === 2 && moment(parts[0], "YYYY-MM-DD", true).isValid() && moment(parts[1], "YYYY-MM-DD", true).isValid()) {
+          start = moment(parts[0], "YYYY-MM-DD");
+          end = moment(parts[1], "YYYY-MM-DD");
+        }
+
+        function cb(startDate, endDate) {
+          $("#overviewDateRangePicker span:first").html(
+            startDate.format("MMMM D, YYYY") + " - " + endDate.format("MMMM D, YYYY")
+          );
+          $("#overviewDateRangeInput").val(
+            startDate.format("YYYY-MM-DD") + " to " + endDate.format("YYYY-MM-DD")
+          );
+        }
+
+        $("#overviewDateRangePicker").daterangepicker(
+          {
+            startDate: start,
+            endDate: end,
+            ranges: {
+              Today: [moment(), moment()],
+              Yesterday: [moment().subtract(1, "days"), moment().subtract(1, "days")],
+              "Last 7 Days": [moment().subtract(6, "days"), moment()],
+              "Last 30 Days": [moment().subtract(29, "days"), moment()],
+              "This Month": [moment().startOf("month"), moment().endOf("month")],
+              "Last Month": [
+                moment().subtract(1, "month").startOf("month"),
+                moment().subtract(1, "month").endOf("month"),
+              ],
+            },
+          },
+          cb
+        );
+
+        cb(start, end);
       });
     </script>
   </body>
